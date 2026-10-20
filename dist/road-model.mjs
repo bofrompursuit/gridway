@@ -1,4 +1,17 @@
 // Geometry uses [latitude, longitude], matching Leaflet.
+export function roadOrientation(road) {
+  let horizontal = 0, vertical = 0;
+  // Length-weighted direction keeps one color per road, including bends and
+  // reversed centerline segments. Longitude is scaled to ground distance.
+  for (const line of road.lines) for (let i = 1; i < line.length; i++) {
+    const a = line[i - 1], b = line[i];
+    const dx = (b[1] - a[1]) * Math.cos((a[0] + b[0]) * Math.PI / 360);
+    const dy = b[0] - a[0], length = Math.hypot(dx, dy);
+    if (length) { horizontal += dx * dx / length; vertical += dy * dy / length; }
+  }
+  return vertical >= horizontal ? 'vertical' : 'horizontal';
+}
+
 export function displayName(name) {
   const words = { W: 'West', E: 'East', N: 'North', S: 'South', ST: 'Street', AVE: 'Avenue',
     BLVD: 'Boulevard', DR: 'Drive', PL: 'Place', RD: 'Road', PKWY: 'Parkway', FDR: 'FDR' };

@@ -1,5 +1,10 @@
-import { displayName, nearestRoad, findRoads } from './road-model.mjs';
+import { displayName, nearestRoad, findRoads, roadOrientation } from './road-model.mjs';
 const $ = id => document.getElementById(id);
+const theme = getComputedStyle(document.documentElement);
+const ROAD_COLORS = {
+  vertical: theme.getPropertyValue('--road-vertical').trim(),
+  horizontal: theme.getPropertyValue('--road-horizontal').trim()
+};
 let map, roadLayer, selectedLayer, pointLayer, labelLayer, selectedRoad;
 let roads = [], searchTimer, searchController, searchVersion = 0;
 const cache = new Map();
@@ -21,7 +26,7 @@ function setRoad(road, fit = false) {
   selectedLayer.clearLayers();
   if ($('roadsToggle').checked) {
     L.polyline(road.lines, {color:'#fff', weight:10, opacity:1, interactive:false}).addTo(selectedLayer);
-    L.polyline(road.lines, {color:'#316a4d', weight:6, opacity:1, interactive:false}).addTo(selectedLayer);
+    L.polyline(road.lines, {color:ROAD_COLORS[road.orientation], weight:6, opacity:1, interactive:false}).addTo(selectedLayer);
   }
   if (fit) map.fitBounds(L.latLngBounds(road.lines.flat()), {
     paddingTopLeft:innerWidth > 650 ? [390,85] : [35,50], paddingBottomRight:[45,45], maxZoom:16
@@ -46,7 +51,7 @@ function drawRoads() {
   // Prioritize the selected road, then the roads nearest the viewport center.
   const candidates = [];
   for (const road of visible) {
-    const path = L.polyline(road.lines, {color:'#52755f', weight:2, opacity:.55, bubblingMouseEvents:false}).addTo(roadLayer);
+    const path = L.polyline(road.lines, {color:ROAD_COLORS[road.orientation], weight:2.5, opacity:.8, bubblingMouseEvents:false}).addTo(roadLayer);
     path.on('click', () => setRoad(road));
     let best, score = Infinity;
     for (const line of road.lines) for (let i = 1; i < line.length; i++) {
@@ -67,8 +72,8 @@ function drawRoads() {
   for (const c of candidates) {
     if (placed.some(p => Math.abs(p.x-c.pixel.x)<65 && Math.abs(p.y-c.pixel.y)<40)) continue;
     const button = document.createElement('button');
-    button.className = 'road-badge'; button.textContent = c.road.id;
-    button.setAttribute('aria-label', `Road ${c.road.id}, ${displayName(c.road.name)}`);
+    button.className = `road-badge road-${c.road.orientation}`; button.textContent = c.road.id;
+    button.setAttribute('aria-label', `Road ${c.road.id}, ${displayName(c.road.name)}, mostly ${c.road.orientation}`);
     button.setAttribute('aria-pressed', String(c.road.id === selectedRoad?.id));
     button.onclick = () => { setRoad(c.road); $('roadNumber').focus({preventScroll:true}); };
     // A real button is the only keyboard target; the Leaflet marker is decorative.
@@ -120,6 +125,7 @@ async function loadRoads() {
     if (!Array.isArray(data.roads) || !data.roads.length) throw Error('Empty street catalog');
     roads = data.roads;
     for (const road of roads) {
+      road.orientation = roadOrientation(road);
       const points = road.lines.flat();
       road.bounds = [Math.min(...points.map(p=>p[0])), Math.min(...points.map(p=>p[1])), Math.max(...points.map(p=>p[0])), Math.max(...points.map(p=>p[1]))];
     }

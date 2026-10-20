@@ -1,8 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {displayName,segmentDistance,nearestRoad,findRoads} from '../dist/road-model.mjs';
+import {displayName,segmentDistance,nearestRoad,findRoads,roadOrientation} from '../dist/road-model.mjs';
 const {roads} = JSON.parse(readFileSync(new URL('../dist/streets.json',import.meta.url)));
+
+test('orientation handles bends, reversed segments, and zero-length points',()=>{
+  const road={lines:[[[40,-74],[40.01,-74],[40.01,-73.999]],[[40.02,-74],[40.01,-74]],[[40,-74],[40,-74]]]};
+  assert.equal(roadOrientation(road),'vertical');
+  assert.equal(roadOrientation({lines:road.lines.map(line=>[...line].reverse())}),'vertical');
+  assert.equal(roadOrientation({lines:[[[40,-74],[40,-73.99]]]}),'horizontal');
+});
+test('Manhattan avenues and cross streets use different direction groups',()=>{
+  assert.equal(roadOrientation(roads.find(r=>r.name==='5 AVE')),'vertical');
+  assert.equal(roadOrientation(roads.find(r=>r.name==='W 42 ST')),'horizontal');
+  assert.equal(roadOrientation(roads.find(r=>r.name==='E 42 ST')),'horizontal');
+});
 
 test('every named road has one distinct numeric reference across all its segments',()=>{
   assert.ok(roads.length>800);

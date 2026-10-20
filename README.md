@@ -17,6 +17,7 @@ Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch addr
 ## What it does
 
 - Draws actual Manhattan street centerlines, with numeric labels on roads rather than grid cells.
+- Colors mostly vertical roads blue and mostly horizontal roads amber. Lines and number labels share the same color; the legend names both groups. Direction uses the length-weighted geometry of the whole road, so bends do not change its color. Selection adds a wider line and white halo.
 - Assigns one Gridway reference to each normalized street name. All segments under that name share the reference. East and West street names have separate references.
 - Highlights the selected road throughout its available geometry. Map labels avoid overlapping each other; zoom in to see local roads. A reference can appear again as the map moves, but its number stays the same.
 - Looks up a road by its Gridway number or real street name, without a remote request.
