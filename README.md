@@ -15,12 +15,12 @@ Open <http://127.0.0.1:8000>. Internet access is required for the map library, m
 ## What it does
 
 - Displays a Leaflet 1.9.4 map with OpenStreetMap tiles and contributor attribution.
-- Searches addresses with Komoot's Photon service after submitting a search.
+- Searches addresses with NYC Planning's GeoSearch service after a 500 ms typing pause (at least three characters), or immediately on submission.
 - Offers a fixed letter-number geographic grid overlay. Letters increase east; numbers increase north. Grid cells are not city blocks, official addresses, or a walkable route.
 - Requests device location once, only after clicking **Use my location**.
 - Opens an external Google Maps link for walking directions. There is no in-app turn-by-turn routing or Google Maps JavaScript API integration.
 
-Searches are sent to Photon; map providers receive the viewed area; opening Google Maps shares the selected origin and destination with Google. App state stays in memory and is not persisted by this app.
+Searches are sent to NYC GeoSearch; map providers receive the viewed area; opening Google Maps shares the selected origin and destination with Google. App state stays in memory and is not persisted by this app.
 
 ## Hosting
 
@@ -49,4 +49,4 @@ browser JavaScript or the published `dist` directory.
 
 ## Source provenance
 
-Imported unchanged from source commit `ba9af7fef9fe6630cad84eccee8148dec7c95c22` of the original Gridway concept. The SHA-256 of `dist/index.html` is `ef2fb239d625d683d3d08f9c6f788c64a7cf7856edfe22a9b9901af2ae16e951` (14,008 bytes).
+Originally imported from source commit `ba9af7fef9fe6630cad84eccee8148dec7c95c22` of the original Gridway concept. Before the NYC GeoSearch integration, the SHA-256 of `dist/index.html` was `ef2fb239d625d683d3d08f9c6f788c64a7cf7856edfe22a9b9901af2ae16e951` (14,008 bytes).
