@@ -4,7 +4,7 @@
 /* Road references replace the former cell overlay. */
 :root{--map-header-height:64px;--ink:#193c33;--muted:#637361;--accent:#d6ee8a;--paper:#fff;--line:#dfe4dc;--radius:9px;--road-vertical:#2463a5;--road-horizontal:#a95813}
 .leaflet-tile-pane{filter:grayscale(.85);opacity:.62}
-.road-badge{pointer-events:auto;border:1px solid var(--ink);border-radius:7px;background:var(--paper);color:var(--ink);font-weight:700;font-size:12px;min-width:34px;height:28px;padding:0 7px;box-shadow:0 1px 5px #193c3320}
+.road-badge{pointer-events:auto;border:1px solid var(--ink);border-radius:7px;background:var(--paper);color:var(--ink);font-weight:700;font-size:12px;min-width:64px;height:28px;padding:0 7px;box-shadow:0 1px 5px #193c3320}
 .road-vertical{--road-color:var(--road-vertical)}
 .road-horizontal{--road-color:var(--road-horizontal)}
 .road-badge{border-color:var(--road-color);color:var(--road-color)}

@@ -20,7 +20,7 @@
 <label class="toggle"><input id="roadsToggle" type="checkbox" checked> Show road labels</label>
 <div class="label-switch" role="group" aria-label="Street labels"><button id="numberLabels" type="button" aria-pressed="true">Numbers</button><button id="nameLabels" type="button" aria-pressed="false">Names</button></div>
 </div>
-<div id="mapNote" class="mapnote">One number per road and borough · Select a number to see the street</div>
+<div id="mapNote" class="mapnote">Vertical: west → east · Horizontal: south → north</div>
 <section class="card" aria-label="Find a street or destination">
 <h1>Where are you headed?</h1>
 <div class="fields">
@@ -36,15 +36,15 @@
 <p class="eyebrow">SELECTED STREET</p>
 <div aria-live="polite" aria-atomic="true"><h2 id="roadNumber" class="road-title">Loading street numbers…</h2><p id="roadName" class="road-name"></p></div>
 <div class="road-legend" aria-label="Road color legend"><span class="road-vertical">↕ Vertical</span><span class="road-horizontal">↔ Horizontal</span></div>
-<p class="road-note">Each borough starts at Road 1. A number stays with its named road, including its bends.</p>
-<form id="roadForm" class="road-tools"><input id="roadQuery" aria-label="Road number or street name" placeholder="Road number or street name" maxlength="100" required><button>Find</button></form>
+<p class="road-note">Vertical roads count west to east first, then horizontal roads south to north. Each borough starts at 1: M Manhattan, BX Bronx, BK Brooklyn, Q Queens, S Staten Island.</p>
+<form id="roadForm" class="road-tools"><input id="roadQuery" aria-label="Road reference or street name" placeholder="Road reference or street name" maxlength="100" required><button>Find</button></form>
 <div id="roadResults" class="results" aria-label="Matching roads"></div><p id="roadStatus" class="status" role="status"></p>
 </section>
 <div class="result"><div><div id="routeSummary" class="route-summary" aria-live="polite" aria-busy="false"><div id="routeDistance" class="route-distance">A to B</div><div id="routeTime">Walking route</div><span id="routeState" class="route-state">Finding walking route...</span></div><button id="routeRetry" class="route-refresh" type="button">Refresh walking route</button></div></div>
 <button id="example" class="example">Reset NYC example</button>
 <details class="privacy"><summary>About street numbers &amp; privacy</summary>
 <p>Gridway numbers are app references, separate from official street names and addresses. East and West street names have separate references. Numbered roads cover Manhattan, Bronx, Brooklyn, Queens, and Staten Island. Addresses and walking routes must stay inside NYC.</p>
-<p>Street shapes: <a href="https://data.cityofnewyork.us/d/inkn-q76z" target="_blank" rel="noopener">NYC Open Data, Street Centerline</a>, downloaded October 19, 2026. Road segments with the same name share one number. Map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>
+<p>Street shapes: <a href="https://data.cityofnewyork.us/d/inkn-q76z" target="_blank" rel="noopener">NYC Open Data, Street Centerline</a>, downloaded October 19, 2026. Road segments with the same name within a borough share one reference. Map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>
 <p>Address searches are sent to NYC Planning’s GeoSearch service as you type or press search. Location is requested once when you tap the button; map providers receive the viewed area. Selected A and B coordinates are sent to FOSSGIS for walking routes; the provider logs requests. A device location selected as A is included. Nothing is persisted by this app.</p>
 <p>Walking routes use <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener">FOSSGIS routing</a> and OpenStreetMap data. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">Fix the map</a>.</p>
 </details>

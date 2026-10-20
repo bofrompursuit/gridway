@@ -1,4 +1,5 @@
 import { displayName, nearestRoad, findRoads, roadOrientation, createCityBoundary } from './road-model.mjs';
+import { roadReference } from './road-reference.mjs';
 const $ = id => document.getElementById(id);
 const theme = getComputedStyle(document.documentElement);
 const ROAD_COLORS = {
@@ -28,12 +29,12 @@ function roadLabel(road) { return displayName(road.name) + ' - ' + road.borough;
 function roadText(point) {
   if (!roads.length) return 'Street references unavailable';
   const match = nearestRoad(point, roads);
-  return match ? `Near Road ${match.road.id} · ${roadLabel(match.road)}` : 'No nearby numbered road in the NYC catalog';
+  return match ? `Near Road ${roadReference(match.road)} · ${roadLabel(match.road)}` : 'No nearby numbered road in the NYC catalog';
 }
 
 function setRoad(road, fit = false) {
   selectedRoad = road;
-  $('roadNumber').textContent = `Road ${road.id}`;
+  $('roadNumber').textContent = `Road ${roadReference(road)}`;
   $('roadName').textContent = roadLabel(road);
   if (!map) return;
   selectedLayer.clearLayers();
@@ -56,7 +57,7 @@ function drawRoads() {
   if (!$('roadsToggle').checked) { $('mapNote').textContent = 'Road labels hidden · Turn them on to explore roads'; return; }
   if (!roads.length) { $('mapNote').textContent = 'Street references unavailable · Address search still works'; return; }
   if (map.getZoom() < 14) { $('mapNote').textContent = 'Zoom in to see street labels'; return; }
-  $('mapNote').textContent = labelMode === 'names' ? 'Street names · Select a label to highlight the road' : 'One number per named road · Select a number to see the street';
+  $('mapNote').textContent = labelMode === 'names' ? 'Street names · Select a label to highlight the road' : 'Vertical: west → east · Horizontal: south → north';
   const b = map.getBounds(), size = map.getSize();
   const headerHeight = document.querySelector('.map-header').offsetHeight;
   const visible = roads.filter(r => intersects(r, b));
@@ -71,7 +72,7 @@ function drawRoads() {
       const point = [(a[0]+c[0])/2, (a[1]+c[1])/2];
       if (!b.contains(point)) continue;
       const pixel = map.latLngToContainerPoint(point);
-      const labelPadding = labelMode === 'names' ? 85 : 30;
+      const labelPadding = labelMode === 'names' ? 85 : 42;
       if (pixel.x < labelPadding || pixel.x > size.x-labelPadding || pixel.y < headerHeight+20 || pixel.y > size.y-30) continue;
       if (pixel.x > size.x-210 && pixel.y < headerHeight+205) continue; // Keep labels clear of map controls.
       // Avoid placing labels underneath the desktop search panel.
@@ -84,16 +85,16 @@ function drawRoads() {
   candidates.sort((a,c) => Number(sameRoad(c.road,selectedRoad))-Number(sameRoad(a.road,selectedRoad)) || a.score-c.score);
   const placed = [];
   for (const c of candidates) {
-    if (placed.some(p => Math.abs(p.x-c.pixel.x)<(labelMode === 'names' ? 170 : 65) && Math.abs(p.y-c.pixel.y)<40)) continue;
+    if (placed.some(p => Math.abs(p.x-c.pixel.x)<(labelMode === 'names' ? 170 : 85) && Math.abs(p.y-c.pixel.y)<40)) continue;
     const button = document.createElement('button');
     button.className = `road-badge road-${c.road.orientation}${labelMode === 'names' ? ' road-badge--name' : ''}`;
-    button.textContent = labelMode === 'names' ? displayName(c.road.name) : c.road.id;
-    button.title = `Road ${c.road.id} · ${roadLabel(c.road)}`;
-    button.setAttribute('aria-label', `Road ${c.road.id}, ${roadLabel(c.road)}, mostly ${c.road.orientation}`);
+    button.textContent = labelMode === 'names' ? displayName(c.road.name) : roadReference(c.road);
+    button.title = `Road ${roadReference(c.road)} · ${roadLabel(c.road)}`;
+    button.setAttribute('aria-label', `Road ${roadReference(c.road)}, ${roadLabel(c.road)}, mostly ${c.road.orientation}`);
     button.setAttribute('aria-pressed', String(sameRoad(c.road,selectedRoad)));
     button.onclick = () => { setRoad(c.road); $('roadNumber').focus({preventScroll:true}); };
     // A real button is the only keyboard target; the Leaflet marker is decorative.
-    L.marker(c.point, {keyboard:false, interactive:false, icon:L.divIcon({className:'', html:button, iconSize:[labelMode === 'names' ? 150 : 42,28], iconAnchor:[labelMode === 'names' ? 75 : 21,14]})}).addTo(labelLayer);
+    L.marker(c.point, {keyboard:false, interactive:false, icon:L.divIcon({className:'', html:button, iconSize:[labelMode === 'names' ? 150 : 64,28], iconAnchor:[labelMode === 'names' ? 75 : 32,14]})}).addTo(labelLayer);
     placed.push(c.pixel);
   }
 }
@@ -269,7 +270,7 @@ $('roadForm').onsubmit = event => {
   $('roadStatus').textContent = matches.length ? `${matches.length} matching road${matches.length===1?'':'s'}${matches.length>6?'; showing the first 6. Add more of the street name to narrow your search.':'.'}` : 'No matching road. Try its full name or a Gridway road number.';
   for (const road of matches.slice(0,6)) {
     const button = document.createElement('button');
-    button.textContent = `Road ${road.id} · ${roadLabel(road)}`;
+    button.textContent = `Road ${roadReference(road)} · ${roadLabel(road)}`;
     button.onclick = () => { setRoad(road,true); $('roadResults').replaceChildren(); $('roadStatus').textContent='Street selected on the map.'; $('roadNumber').focus({preventScroll:true}); };
     $('roadResults').appendChild(button);
   }

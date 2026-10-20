@@ -3,7 +3,7 @@ services:
     name: gridway
     runtime: static
     branch: main
-    buildCommand: test -f dist/index.html && test -f dist/map/index.html && test -f dist/map.html && test -f dist/assets/nyc-street-hero.jpg && test -f dist/assets/nyc-street-signs.jpg
+    buildCommand: test -f dist/index.html && test -f dist/map/index.html && test -f dist/map.html && test -f dist/road-reference.mjs && test -f dist/assets/nyc-street-hero.jpg && test -f dist/assets/nyc-street-signs.jpg
     staticPublishPath: ./dist
     routes:
       - type: rewrite

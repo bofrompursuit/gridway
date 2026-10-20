@@ -1,17 +1,11 @@
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {GEOGRAPHIC_NUMBERING, numberRoadsGeographically} from '../dist/road-model.mjs';
 
 export const BOROUGHS = {1:'Manhattan', 2:'Bronx', 3:'Brooklyn', 4:'Queens', 5:'Staten Island'};
 
 export function buildCatalog(rows, boundaryRows, previous = {}, retrieved = '2026-10-19') {
-  const perBorough = previous.numbering === 'per-borough';
-  const registry = Object.fromEntries(Object.entries(previous.idRegistry || {}).filter(([key]) => perBorough || key.startsWith('1:')));
-  for (const road of previous.roads || []) {
-    if (perBorough || (road.boroughCode || 1) === 1) registry[`${road.boroughCode || 1}:${road.name}`] = road.id;
-  }
-  const nextIds = Object.fromEntries(Object.keys(BOROUGHS).map(code => [code,
-    Math.max(0, ...Object.entries(registry).filter(([key]) => key.startsWith(code + ':')).map(([, id]) => id)) + 1]));
   const groups = new Map(), sourceCounts = {};
   for (const row of rows) {
     const code = Number(row.boroughcode), name = String(row.full_street_name || '').trim().replace(/\s+/g, ' ');
@@ -29,15 +23,14 @@ export function buildCatalog(rows, boundaryRows, previous = {}, retrieved = '202
     }
   }
   if (Object.keys(sourceCounts).length !== 5) throw Error('Street data must include every borough');
-  const collator = new Intl.Collator('en', {numeric:true});
-  const roads = [...groups.entries()].sort(([, a], [, b]) => a.boroughCode - b.boroughCode || collator.compare(a.name, b.name)).map(([key, road]) => {
-    if (!registry[key]) registry[key] = nextIds[road.boroughCode]++;
-    return {id:registry[key], ...road};
-  });
+  // Recompute from geometry on every import. Keeping an older ID or appending
+  // a new road would break the geographic sequence when coverage changes.
+  const roads = numberRoadsGeographically([...groups.values()]);
+  const registry = Object.fromEntries(roads.map(road => [`${road.boroughCode}:${road.name}`, road.id]));
   const boroughs = boundaryRows.map(b => ({code:Number(b.borocode), name:BOROUGHS[Number(b.borocode)], geometry:b.the_geom}));
   if (boroughs.length !== 5 || new Set(boroughs.map(b => b.code)).size !== 5 || boroughs.some(b => !b.name || b.geometry?.type !== 'MultiPolygon')) throw Error('Invalid five-borough boundaries');
   return {source:'NYC Open Data Street Centerline (CSCL), inkn-q76z', sourceUrl:'https://data.cityofnewyork.us/d/inkn-q76z', boundarySourceUrl:'https://data.cityofnewyork.us/d/wh2p-dxnf', retrieved,
-    scope:'NYC five boroughs; boroughcode in 1..5; rw_type=1 (streets)', numbering:'per-borough', sourceCounts, idRegistry:registry, boroughs, roads};
+    scope:'NYC five boroughs; boroughcode in 1..5; rw_type=1 (streets)', numbering:'per-borough', numberingDetails:GEOGRAPHIC_NUMBERING, sourceCounts, idRegistry:registry, boroughs, roads};
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

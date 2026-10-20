@@ -1,9 +1,14 @@
-const label = document.querySelector('#demo-label');
-const labelButtons = document.querySelectorAll('[data-label]');
+const demo = document.querySelector('.street-demo');
+const label = demo.querySelector('#demo-label');
+const labelButtons = demo.querySelectorAll('[data-label]');
+const demoLabels = {
+  number: `Road ${demo.dataset.roadPrefix}${demo.dataset.roadNumber}`,
+  name: demo.dataset.roadName,
+};
 
 for (const button of labelButtons) {
   button.addEventListener('click', () => {
-    label.textContent = button.dataset.label === 'name' ? 'Broadway' : 'Road 86';
+    label.textContent = demoLabels[button.dataset.label];
     for (const other of labelButtons) {
       other.setAttribute('aria-pressed', String(other === button));
     }

@@ -1,6 +1,6 @@
 # Gridway
 
-A NYC five-borough street-reference app with a product homepage at `/` and the interactive map at `/map/`. Each named road within a borough has one stable numeric Gridway reference. Numbering restarts at 1 in each borough. Selecting a number highlights that road's geometry; there are no coordinate cells or cell-offset instructions.
+A NYC five-borough street-reference app with a product homepage at `/` and the interactive map at `/map/`. Each named road within a borough has one geographic Gridway reference. Numbering restarts at 1 in each borough and includes a borough prefix: M (Manhattan), BX (Bronx), BK (Brooklyn), Q (Queens), or S (Staten Island). Selecting a number highlights that road's geometry; there are no coordinate cells or cell-offset instructions.
 
 ## Run locally
 
@@ -19,9 +19,9 @@ Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch addr
 - Introduces the product on the homepage, with a street photo, three feature cards, and direct links to the map. Feature cards reveal once on scroll; reduced-motion preferences disable the animation.
 - Draws actual street centerlines across Manhattan, Bronx, Brooklyn, Queens, and Staten Island, with numeric labels on roads rather than grid cells. Switch between **Numbers** and **Names** on the map; the same road keeps its reference and direction color.
 - Colors mostly vertical roads blue and mostly horizontal roads amber. Lines and number labels share the same color; the legend names both groups. Direction uses the length-weighted geometry of the whole road, so bends do not change its color. Selection adds a wider line and white halo.
-- Assigns one Gridway reference to each borough and normalized street-name pair, starting at 1 independently in each borough. All segments under that pair share the reference; the same name in a different borough has a different reference. East and West street names have separate references.
+- Assigns one Gridway reference to each borough and normalized street-name pair. In each borough, vertical roads count west to east first, followed by horizontal roads south to north. All segments of a named road share the reference. East and West street names have separate references.
 - Highlights the selected road throughout its available geometry. Map labels avoid overlapping each other; zoom in to see local roads. A reference can appear again as the map moves, but its number stays the same.
-- Looks up a road by its Gridway number or real street name, without a remote request.
+- Looks up a road by its full reference (for example, M1, BX1, BK1, Q1, or S1), a number across all boroughs, or its real street name, without a remote request.
 - Searches start and destination addresses using NYC Planning's GeoSearch service immediately on each non-empty input change, or on submission. Requests start with the first character; outdated requests are canceled.
 - Shows a nearby road reference for each endpoint when a catalog road is within 150 meters. This is proximity to a centerline, not a verified entrance, address match, or walking instruction.
 - Requests device location once, only after clicking **Use my location**.
@@ -31,9 +31,9 @@ Gridway numbers are app references, not official street numbers, addresses, bloc
 
 Searches are sent to NYC GeoSearch; the map provider receives the viewed area; selected A and B coordinates are sent to FOSSGIS for route calculation and logged by that provider. State stays in memory and is not persisted by the app. Viewing the road catalog does not make a live street-data API request.
 
-## Street data and stable references
+## Street data and geographic numbering
 
-`dist/streets.json` contains a frozen snapshot of [NYC Open Data Street Centerline (CSCL)](https://data.cityofnewyork.us/d/inkn-q76z), retrieved October 19, 2026. It includes 9,892 borough-specific named roads from 99,361 source street records. All 909 pre-existing Manhattan road IDs are preserved. Coordinates are rounded to six decimal places. The source is roadbed centerline geometry, not a pedestrian routing network. Generic `CONNECTOR` and `UNNAMED ST` features are excluded because they can refer to unrelated roads.
+`dist/streets.json` contains a frozen snapshot of [NYC Open Data Street Centerline (CSCL)](https://data.cityofnewyork.us/d/inkn-q76z), retrieved October 19, 2026. It includes 9,892 borough-specific named roads from 99,361 source street records. Road numbers are assigned geographically rather than alphabetically. Coordinates are rounded to six decimal places. The source is roadbed centerline geometry, not a pedestrian routing network. Generic `CONNECTOR` and `UNNAMED ST` features are excluded because they can refer to unrelated roads.
 
 Source API query:
 
@@ -58,10 +58,25 @@ current largest borough response has 37,883 records. Include the boundary respon
 as `borough-boundaries.json` from
 `https://data.cityofnewyork.us/resource/wh2p-dxnf.json?$limit=5`.
 
-The Node.js importer preserves existing borough/name IDs and retains the ID registry
-for removed names. New names receive the next available number within their borough. Numbers restart at 1 in each borough; the borough plus number identifies a road. `tools/import_streets.py` is an
-optional Python wrapper around the same Node.js importer. No Python installation
-is needed to use the Node.js command. Street IDs do not imply travel order.
+The Node.js importer recomputes geographic numbers within each borough on every
+import. Vertical roads receive the first range, west to east; horizontal roads
+continue that sequence, south to north. The borough prefix plus number identifies
+one road. Parallel roads are compared along their shared extent so unequal road
+lengths do not reverse their local order. Curves and crossing roads can have
+conflicting positions; the longest shared comparisons take precedence, with the
+length-weighted road center and street name resolving remaining ties.
+
+Numbers remain fixed within the bundled catalog. Adding roads or changing their
+geometry can renumber other roads on the next import. Old alphabetical references
+are replaced. To recompute numbers from the existing bundled geometry without
+downloading source data:
+
+```sh
+node tools/renumber_streets.mjs
+```
+
+`tools/import_streets.py` is an optional Python wrapper around the same Node.js
+importer. No Python installation is needed for the Node.js commands.
 
 The bundled boundary source is [NYC Borough Boundaries, water areas included](https://data.cityofnewyork.us/d/wh2p-dxnf).
 Boundary checks use polygons, including holes and islands, rather than a rectangular
@@ -87,10 +102,10 @@ With Node.js installed:
 
 ```sh
 node --check dist/app.mjs
-node --test tests/road-model.test.mjs
+node --test tests/*.test.mjs
 ```
 
-Browser checks: select a numbered road; look up Broadway and a numeric reference; toggle street numbers; reset the example; submit an address search; check walking distance and the drawn route; check mobile layout and keyboard focus. Do not request real location for a routine demo check.
+Browser checks: select a numbered road; look up Broadway and a prefixed borough reference; toggle street numbers; reset the example; submit an address search; check walking distance and the drawn route; check mobile layout and keyboard focus. Do not request real location for a routine demo check.
 
 ## Hosting
 
