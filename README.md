@@ -22,7 +22,7 @@ Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch addr
 - Assigns one Gridway reference to each normalized street name. All segments under that name share the reference. East and West street names have separate references.
 - Highlights the selected road throughout its available geometry. Map labels avoid overlapping each other; zoom in to see local roads. A reference can appear again as the map moves, but its number stays the same.
 - Looks up a road by its Gridway number or real street name, without a remote request.
-- Searches start and destination addresses using NYC Planning's GeoSearch service after a 500 ms typing pause (at least three characters), or immediately on submission.
+- Searches start and destination addresses using NYC Planning's GeoSearch service immediately on each non-empty input change, or on submission. Requests start with the first character; outdated requests are canceled.
 - Shows a nearby road reference for each endpoint when a catalog road is within 150 meters. This is proximity to a centerline, not a verified entrance, address match, or walking instruction.
 - Requests device location once, only after clicking **Use my location**.
 - Draws the walking route between A and B, with distance in miles/meters and estimated walking time, using FOSSGIS foot routing. It does not record GPS travel.

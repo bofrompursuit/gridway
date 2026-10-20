@@ -6,7 +6,7 @@ const ROAD_COLORS = {
   horizontal: theme.getPropertyValue('--road-horizontal').trim()
 };
 let map, roadLayer, selectedLayer, pointLayer, labelLayer, selectedRoad, routeLayer;
-let roads = [], searchTimer, searchController, searchVersion = 0, labelMode = 'numbers';
+let roads = [], searchController, searchVersion = 0, labelMode = 'numbers';
 const cache = new Map();
 let start = {lat:40.7536,lng:-73.9832,name:'Bryant Park, NYC'};
 let end = {lat:40.7527,lng:-73.9772,name:'Grand Central Terminal, NYC'};
@@ -193,9 +193,9 @@ async function loadRoads() {
   }
 }
 
-function cancelSearch(){clearTimeout(searchTimer);searchVersion++;searchController?.abort();$('results').replaceChildren();$('status').textContent=''}
+function cancelSearch(){searchVersion++;searchController?.abort();$('results').replaceChildren();$('status').textContent=''}
 async function search(kind,autocomplete=false){
-  clearTimeout(searchTimer);searchController?.abort();const version=++searchVersion;
+  searchController?.abort();const version=++searchVersion;
   const input=$(kind==='start'?'origin':'destination'),q=input.value.trim();
   if(!q){$('status').textContent='Enter an NYC street or address to search.';input.focus();return}
   $('results').replaceChildren();
@@ -227,7 +227,7 @@ async function search(kind,autocomplete=false){
   finally{clearTimeout(timeout)}
 }
 for(const [id,kind] of [['origin','start'],['destination','end']]){
-  $(id).addEventListener('input',()=>{dirtyFields.add(id);clearWalkingRoute();$('routeState').textContent='Select a matching address for each edited field.';cancelSearch();if($(id).value.trim().length<3)return;$('status').textContent='Waiting for you to finish typing...';searchTimer=setTimeout(()=>search(kind,true),500)});
+  $(id).addEventListener('input',()=>{dirtyFields.add(id);clearWalkingRoute();$('routeState').textContent='Select a matching address for each edited field.';cancelSearch();if(!$(id).value.trim())return;search(kind,true)});
   $(id).addEventListener('focus',()=>cancelSearch());
 }
 
