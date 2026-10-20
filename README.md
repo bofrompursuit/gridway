@@ -12,7 +12,7 @@ python3 -m http.server 8000 --bind 127.0.0.1 --directory dist
 
 Open <http://127.0.0.1:8000>. There is no build step, package install, backend, or API key configuration. Use HTTP rather than opening the HTML as a file, because the app loads a bundled JSON catalog and JavaScript modules.
 
-Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch address search, and external Google Maps walking directions. The street catalog is bundled locally. Device location requires browser permission and HTTPS or localhost.
+Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch address search, and walking-route calculation. The street catalog is bundled locally. Device location requires browser permission and HTTPS or localhost.
 
 ## What it does
 
@@ -24,11 +24,11 @@ Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch addr
 - Searches start and destination addresses using NYC Planning's GeoSearch service after a 500 ms typing pause (at least three characters), or immediately on submission.
 - Shows a nearby road reference for each endpoint when a catalog road is within 150 meters. This is proximity to a centerline, not a verified entrance, address match, or walking instruction.
 - Requests device location once, only after clicking **Use my location**.
-- Opens Google Maps for walking directions. It does not calculate or draw a route, provide in-app turn-by-turn directions, or integrate the Google Maps JavaScript API.
+- Draws the walking route between A and B, with distance in miles/meters and estimated walking time, using FOSSGIS foot routing. It does not record GPS travel.
 
-Gridway numbers are app references, not official street numbers, addresses, block numbers, or emergency-service identifiers. Numbered-road coverage is Manhattan. Address search and the Google Maps link remain available outside that coverage.
+Gridway numbers are app references, not official street numbers, addresses, block numbers, or emergency-service identifiers. Numbered-road coverage is Manhattan. Address search and walking routes remain available outside that coverage.
 
-Searches are sent to NYC GeoSearch; the map provider receives the viewed area; opening Google Maps shares the selected origin and destination with Google. State stays in memory and is not persisted by the app. Viewing the road catalog does not make a live street-data API request.
+Searches are sent to NYC GeoSearch; the map provider receives the viewed area; selected A and B coordinates are sent to FOSSGIS for route calculation and logged by that provider. State stays in memory and is not persisted by the app. Viewing the road catalog does not make a live street-data API request.
 
 ## Street data and stable references
 
@@ -61,7 +61,7 @@ node --check dist/app.mjs
 node --test tests/road-model.test.mjs
 ```
 
-Browser checks: select a numbered road; look up Broadway and a numeric reference; toggle street numbers; reset the example; submit an address search; check the walking-directions destination; check mobile layout and keyboard focus. Do not request real location for a routine demo check.
+Browser checks: select a numbered road; look up Broadway and a numeric reference; toggle street numbers; reset the example; submit an address search; check walking distance and the drawn route; check mobile layout and keyboard focus. Do not request real location for a routine demo check.
 
 ## Hosting
 
@@ -74,3 +74,23 @@ Local `.env` files are not published and are not read by this static app. The NY
 ## Source provenance
 
 The original repository imported the earlier coordinate demo from source commit `ba9af7fef9fe6630cad84eccee8148dec7c95c22`. The street-reference revision replaces that demo's artificial coordinate overlay and splits its HTML, styles, and behavior into separate static files.
+
+## Walking routes
+
+The static app calls the public foot-routing service at
+`https://routing.openstreetmap.de/routed-foot/route/v1/driving/`.
+The `driving` path segment is the OSRM API name; the dedicated `routed-foot`
+server computes pedestrian routes. No API key or backend is required. The public
+URL is defined in `ROUTING_BASE_URL` in `dist/app.mjs`; static HTML does not
+read `.env` files. `WALKING_ROUTING_BASE_URL` in `.env.example` documents the URL
+for a future configuration/build integration.
+
+Routes refresh after selecting addresses, setting a device origin, or resetting
+the example. Editing an address clears the old route until a match is selected.
+Requests are limited to at most one per second per page and cached in memory.
+Distance and time describe the returned route, not grid displacement or a GPS
+recording. Offline, missing-route, timeout, and malformed-response states clear
+the old path and offer a refresh action.
+
+Service policy and attribution: <https://routing.openstreetmap.de/about.html>.
+This shared service is for light use; availability is not guaranteed.

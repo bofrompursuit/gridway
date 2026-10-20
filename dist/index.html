@@ -36,12 +36,13 @@
 <form id="roadForm" class="road-tools"><input id="roadQuery" aria-label="Road number or street name" placeholder="Road number or street name" maxlength="100" required><button>Find</button></form>
 <div id="roadResults" class="results" aria-label="Matching roads"></div><p id="roadStatus" class="status" role="status"></p>
 </section>
-<div class="result"><a id="google" class="google" href="https://www.google.com/maps/dir/?api=1&amp;origin=Bryant+Park+New+York&amp;destination=Grand+Central+Terminal+New+York&amp;travelmode=walking" target="_blank" rel="noopener">Walk with Google Maps ↗</a></div>
+<div class="result"><div><div id="routeSummary" class="route-summary" aria-live="polite" aria-busy="false"><div id="routeDistance" class="route-distance">A to B</div><div id="routeTime">Walking route</div><span id="routeState" class="route-state">Finding walking route...</span></div><button id="routeRetry" class="route-refresh" type="button">Refresh walking route</button></div></div>
 <button id="example" class="example">Reset NYC example</button>
 <details class="privacy"><summary>About street numbers &amp; privacy</summary>
 <p>Gridway numbers are app references, separate from official street names and addresses. East and West street names have separate references. Numbered roads cover Manhattan; they do not provide a walking route.</p>
 <p>Street shapes: <a href="https://data.cityofnewyork.us/d/inkn-q76z" target="_blank" rel="noopener">NYC Open Data, Street Centerline</a>, downloaded October 19, 2026. Road segments with the same name share one number. Map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>
-<p>Address searches are sent to NYC Planning’s GeoSearch service when you pause typing or press search. Location is requested once when you tap the button; map providers receive the viewed area. Opening Google Maps shares your chosen start and destination with Google. Nothing is stored by this app.</p>
+<p>Address searches are sent to NYC Planning’s GeoSearch service when you pause typing or press search. Location is requested once when you tap the button; map providers receive the viewed area. Selected A and B coordinates are sent to FOSSGIS for walking routes; the provider logs requests. A device location selected as A is included. Nothing is persisted by this app.</p>
+<p>Walking routes use <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener">FOSSGIS routing</a> and OpenStreetMap data. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">Fix the map</a>.</p>
 </details>
 </section></main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

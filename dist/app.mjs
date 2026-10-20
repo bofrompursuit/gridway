@@ -5,7 +5,7 @@ const ROAD_COLORS = {
   vertical: theme.getPropertyValue('--road-vertical').trim(),
   horizontal: theme.getPropertyValue('--road-horizontal').trim()
 };
-let map, roadLayer, selectedLayer, pointLayer, labelLayer, selectedRoad;
+let map, roadLayer, selectedLayer, pointLayer, labelLayer, selectedRoad, routeLayer;
 let roads = [], searchTimer, searchController, searchVersion = 0;
 const cache = new Map();
 let start = {lat:40.7536,lng:-73.9832,name:'Bryant Park, NYC'};
@@ -82,13 +82,54 @@ function drawRoads() {
   }
 }
 
+const ROUTING_BASE_URL='https://routing.openstreetmap.de/routed-foot/route/v1/driving/';
+let routeTimer,routeController,routeVersion=0,lastRouteStarted=0,routeKey='';
+const routeCache=new Map(),dirtyFields=new Set();
+function clearWalkingRoute(){
+  clearTimeout(routeTimer);routeController?.abort();routeVersion++;routeKey='';
+  routeLayer?.clearLayers();$('routeSummary').setAttribute('aria-busy','false');
+  $('routeDistance').textContent='A to B';$('routeTime').textContent='';
+}
+function fitRoute(points){map.fitBounds(points,{paddingTopLeft:innerWidth>650?[390,85]:[35,50],paddingBottomRight:[45,45],maxZoom:16})}
+function renderWalkingRoute(route,fit){
+  routeLayer.clearLayers();const points=route.geometry.coordinates.map(([lng,lat])=>[lat,lng]);
+  L.polyline(points,{color:'#193c33',weight:6,opacity:.9,interactive:false}).addTo(routeLayer);
+  const meters=Math.round(route.distance),minutes=Math.ceil(route.duration/60);
+  $('routeDistance').textContent=(route.distance/1609.344).toFixed(2)+' mi';
+  $('routeTime').textContent=meters+' m | About '+minutes+' min walk';
+  $('routeState').textContent='Live | Walking route from A to B';
+  if(fit)fitRoute([...points,[start.lat,start.lng],[end.lat,end.lng]]);
+}
+function requestWalkingRoute(fit=true,force=false){
+  if(dirtyFields.size){clearWalkingRoute();$('routeState').textContent='Select a matching address for each edited field.';return}
+  const key=[start.lng,start.lat,end.lng,end.lat].join(',');
+  if(!force&&routeKey===key)return;
+  clearWalkingRoute();routeKey=key;const version=routeVersion;
+  if(!map||!routeLayer){$('routeState').textContent='Map temporarily unavailable. Reload to try again.';return}
+  if(start.lat===end.lat&&start.lng===end.lng){$('routeDistance').textContent='0 mi';$('routeTime').textContent='0 m | 0 min walk';$('routeState').textContent='A and B are the same location.';return}
+  if(!force&&routeCache.has(key)){renderWalkingRoute(routeCache.get(key),fit);return}
+  $('routeSummary').setAttribute('aria-busy','true');$('routeState').textContent='Finding walking route...';
+  const coordinates=start.lng+','+start.lat+';'+end.lng+','+end.lat;
+  routeTimer=setTimeout(async()=>{
+    const controller=new AbortController();routeController=controller;
+    const timeout=setTimeout(()=>controller.abort(),15000);
+    try{
+      lastRouteStarted=Date.now();
+      const url=new URL(ROUTING_BASE_URL+coordinates);url.search=new URLSearchParams({overview:'full',geometries:'geojson',steps:'false'});
+      const response=await fetch(url,{signal:controller.signal});if(!response.ok)throw Error('service');
+      const data=await response.json();if(version!==routeVersion)return;
+      const route=data.routes?.[0],coords=route?.geometry?.coordinates;
+      if(routeCache.size>=20)routeCache.delete(routeCache.keys().next().value);routeCache.set(key,route);
+      renderWalkingRoute(route,fit);
+    }catch(e){if(version!==routeVersion)return;routeKey='';routeLayer.clearLayers();$('routeState').textContent=navigator.onLine===false?'No Internet Access. Reconnect, then refresh the route.':'Walking route temporarily unavailable. Refresh to try again.'}
+    finally{clearTimeout(timeout);if(version===routeVersion)$('routeSummary').setAttribute('aria-busy','false')}
+  },Math.max(0,1050-(Date.now()-lastRouteStarted)));
+}
+$('routeRetry').onclick=()=>requestWalkingRoute(true,true);
 function update(fit = true) {
   $('originRoad').textContent = roadText(start);
   $('destinationRoad').textContent = roadText(end);
-  const url = new URL('https://www.google.com/maps/dir/');
-  url.search = new URLSearchParams({api:'1', origin:`${start.lat},${start.lng}`, destination:`${end.lat},${end.lng}`, travelmode:'walking'});
-  $('google').href = url.toString();
-  if (!map) return;
+  if (!map) { requestWalkingRoute(fit); return; }
   pointLayer.clearLayers();
   for (const [point, type] of [[start,'start'],[end,'dest']]) {
     const popup = document.createElement('div'); popup.textContent = `${point.name} · ${roadText(point)}`;
@@ -100,19 +141,22 @@ function update(fit = true) {
   const match = nearestRoad(start, roads);
   if (match) setRoad(match.road);
   drawRoads();
+  requestWalkingRoute(fit);
 }
 
 function initMap() {
-  if (!window.L) { $('fallback').textContent='Map could not load. Street lookup and Google Maps directions still work.'; return; }
+  if (!window.L) { $('fallback').textContent='Map could not load. Street lookup still works. Reload to retry the map.'; return; }
   map = L.map('map',{zoomControl:false}).setView([40.754,-73.981],16);
   L.control.zoom({position:'topright'}).addTo(map);
   const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
   tiles.on('load', () => $('fallback').classList.add('hidden'));
-  tiles.on('tileerror', () => { $('fallback').classList.remove('hidden'); $('fallback').textContent='Some map tiles are unavailable. Street lookup and Google Maps directions still work.'; });
+  tiles.on('tileerror', () => { $('fallback').classList.remove('hidden'); $('fallback').textContent='Some map tiles are unavailable. Street lookup and route distance remain available.'; });
   roadLayer = L.layerGroup().addTo(map);
   selectedLayer = L.layerGroup().addTo(map);
   labelLayer = L.layerGroup().addTo(map);
+  routeLayer = L.layerGroup().addTo(map);
   pointLayer = L.layerGroup().addTo(map);
+  map.attributionControl.addAttribution('Routing: <a href="https://routing.openstreetmap.de/about.html">FOSSGIS</a>');
   map.on('moveend',drawRoads);
   update();
 }
@@ -136,7 +180,7 @@ async function loadRoads() {
     update(false);
   } catch {
     $('roadNumber').textContent='Street numbers unavailable';
-    $('roadName').textContent='Reload to try again. Address search and Google Maps still work.';
+    $('roadName').textContent='Reload to try again. Address search and walking routes still work.';
     $('roadStatus').textContent='Could not load the Manhattan street catalog.';
     drawRoads();
   }
@@ -169,14 +213,14 @@ async function search(kind,autocomplete=false){
     $('status').textContent='Choose the matching NYC address:';
     for(const f of data.features){
       const name=f.properties.label,button=document.createElement('button');button.type='button';button.textContent=name;
-      button.onclick=()=>{if(version!==searchVersion)return;cancelSearch();const point={lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name};if(kind==='start')start=point;else end=point;input.value=name;update()};
+      button.onclick=()=>{if(version!==searchVersion)return;cancelSearch();const point={lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name};if(kind==='start')start=point;else end=point;input.value=name;dirtyFields.delete(input.id);update()};
       $('results').appendChild(button);
     }
   }catch(e){if(version!==searchVersion)return;$('status').textContent=navigator.onLine===false?'No Internet Access. Reconnect, then search again.':'Address search is temporarily unavailable. Try again.'}
   finally{clearTimeout(timeout)}
 }
 for(const [id,kind] of [['origin','start'],['destination','end']]){
-  $(id).addEventListener('input',()=>{cancelSearch();if($(id).value.trim().length<3)return;$('status').textContent='Waiting for you to finish typing...';searchTimer=setTimeout(()=>search(kind,true),500)});
+  $(id).addEventListener('input',()=>{dirtyFields.add(id);clearWalkingRoute();$('routeState').textContent='Select a matching address for each edited field.';cancelSearch();if($(id).value.trim().length<3)return;$('status').textContent='Waiting for you to finish typing...';searchTimer=setTimeout(()=>search(kind,true),500)});
   $(id).addEventListener('focus',()=>cancelSearch());
 }
 
@@ -203,11 +247,11 @@ $('locate').onclick = () => {
   $('status').textContent='Requesting your location…';
   navigator.geolocation.getCurrentPosition(pos => {
     start={lat:pos.coords.latitude,lng:pos.coords.longitude,name:'My location'};
-    $('origin').value='My location'; $('status').textContent=`Location found (accuracy about ${Math.round(pos.coords.accuracy)} m).`; update();
+    $('origin').value='My location'; dirtyFields.delete('origin'); $('status').textContent=`Location found (accuracy about ${Math.round(pos.coords.accuracy)} m).`; update();
   }, err => { $('status').textContent=err.code===1?'Location permission was declined. Enter a starting address.':'Could not get your location. Enter a starting address.'; }, {enableHighAccuracy:true,timeout:12000,maximumAge:60000});
 };
 $('example').onclick = () => {
-  cancelSearch();
+  cancelSearch(); dirtyFields.clear();
   start={...EXAMPLE[0]}; end={...EXAMPLE[1]};
   $('origin').value=start.name; $('destination').value=end.name;
   $('status').textContent=''; $('results').replaceChildren();
