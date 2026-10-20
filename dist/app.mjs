@@ -107,6 +107,7 @@ function requestWalkingRoute(fit=true,force=false){
   clearWalkingRoute();routeKey=key;const version=routeVersion;
   if(!map||!routeLayer){$('routeState').textContent='Map temporarily unavailable. Reload to try again.';return}
   if(start.lat===end.lat&&start.lng===end.lng){$('routeDistance').textContent='0 mi';$('routeTime').textContent='0 m | 0 min walk';$('routeState').textContent='A and B are the same location.';return}
+  if(navigator.onLine===false){routeKey='';$('routeState').textContent='No Internet Access. Reconnect, then refresh the route.';return}
   if(!force&&routeCache.has(key)){renderWalkingRoute(routeCache.get(key),fit);return}
   $('routeSummary').setAttribute('aria-busy','true');$('routeState').textContent='Finding walking route...';
   const coordinates=start.lng+','+start.lat+';'+end.lng+','+end.lat;
@@ -118,7 +119,9 @@ function requestWalkingRoute(fit=true,force=false){
       const url=new URL(ROUTING_BASE_URL+coordinates);url.search=new URLSearchParams({overview:'full',geometries:'geojson',steps:'false'});
       const response=await fetch(url,{signal:controller.signal});if(!response.ok)throw Error('service');
       const data=await response.json();if(version!==routeVersion)return;
+      if(['NoRoute','NoSegment'].includes(data.code)){$('routeState').textContent='No walking route found between A and B. Choose another address.';routeKey='';return}
       const route=data.routes?.[0],coords=route?.geometry?.coordinates;
+      if(data.code!=='Ok'||!Number.isFinite(route?.distance)||route.distance<0||!Number.isFinite(route?.duration)||route.duration<0||route.geometry?.type!=='LineString'||!Array.isArray(coords)||coords.length<2||!coords.every(p=>Array.isArray(p)&&p.length>=2&&Number.isFinite(p[0])&&Math.abs(p[0])<=180&&Number.isFinite(p[1])&&Math.abs(p[1])<=90))throw Error('response');
       if(routeCache.size>=20)routeCache.delete(routeCache.keys().next().value);routeCache.set(key,route);
       renderWalkingRoute(route,fit);
     }catch(e){if(version!==routeVersion)return;routeKey='';routeLayer.clearLayers();$('routeState').textContent=navigator.onLine===false?'No Internet Access. Reconnect, then refresh the route.':'Walking route temporarily unavailable. Refresh to try again.'}
