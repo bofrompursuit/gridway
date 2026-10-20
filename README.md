@@ -1,6 +1,6 @@
 # Gridway
 
-A Manhattan street-reference app with a product homepage at `/` and the interactive map at `/map/`. Each named road has one stable numeric Gridway reference. Selecting a number highlights that road's geometry; there are no coordinate cells or cell-offset instructions.
+A NYC five-borough street-reference app with a product homepage at `/` and the interactive map at `/map/`. Each named road within a borough has one stable numeric Gridway reference. Numbering restarts at 1 in each borough. Selecting a number highlights that road's geometry; there are no coordinate cells or cell-offset instructions.
 
 ## Run locally
 
@@ -17,9 +17,9 @@ Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch addr
 ## What it does
 
 - Introduces the product on the homepage, with a street photo, three feature cards, and direct links to the map. Feature cards reveal once on scroll; reduced-motion preferences disable the animation.
-- Draws actual Manhattan street centerlines, with numeric labels on roads rather than grid cells. Switch between **Numbers** and **Names** on the map; the same road keeps its reference and direction color.
+- Draws actual street centerlines across Manhattan, Bronx, Brooklyn, Queens, and Staten Island, with numeric labels on roads rather than grid cells. Switch between **Numbers** and **Names** on the map; the same road keeps its reference and direction color.
 - Colors mostly vertical roads blue and mostly horizontal roads amber. Lines and number labels share the same color; the legend names both groups. Direction uses the length-weighted geometry of the whole road, so bends do not change its color. Selection adds a wider line and white halo.
-- Assigns one Gridway reference to each normalized street name. All segments under that name share the reference. East and West street names have separate references.
+- Assigns one Gridway reference to each borough and normalized street-name pair, starting at 1 independently in each borough. All segments under that pair share the reference; the same name in a different borough has a different reference. East and West street names have separate references.
 - Highlights the selected road throughout its available geometry. Map labels avoid overlapping each other; zoom in to see local roads. A reference can appear again as the map moves, but its number stays the same.
 - Looks up a road by its Gridway number or real street name, without a remote request.
 - Searches start and destination addresses using NYC Planning's GeoSearch service immediately on each non-empty input change, or on submission. Requests start with the first character; outdated requests are canceled.
@@ -27,20 +27,20 @@ Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch addr
 - Requests device location once, only after clicking **Use my location**.
 - Draws the walking route between A and B, with distance in miles/meters and estimated walking time, using FOSSGIS foot routing. It does not record GPS travel.
 
-Gridway numbers are app references, not official street numbers, addresses, block numbers, or emergency-service identifiers. Numbered-road coverage is Manhattan. Address search and walking routes remain available outside that coverage.
+Gridway numbers are app references, not official street numbers, addresses, block numbers, or emergency-service identifiers. Coverage is limited to the five boroughs. Address results, selected endpoints, device location, and walking routes are checked against bundled official NYC municipal boundaries. Outside addresses and locations are rejected. A walking route that leaves NYC is not displayed.
 
 Searches are sent to NYC GeoSearch; the map provider receives the viewed area; selected A and B coordinates are sent to FOSSGIS for route calculation and logged by that provider. State stays in memory and is not persisted by the app. Viewing the road catalog does not make a live street-data API request.
 
 ## Street data and stable references
 
-`dist/streets.json` contains a frozen snapshot of [NYC Open Data Street Centerline (CSCL)](https://data.cityofnewyork.us/d/inkn-q76z), retrieved October 19, 2026. It includes 909 normalized street names and 9,988 centerline geometries. Coordinates are rounded to six decimal places. The source is roadbed centerline geometry, not a pedestrian routing network. Generic `CONNECTOR` and `UNNAMED ST` features are excluded because they can refer to unrelated roads.
+`dist/streets.json` contains a frozen snapshot of [NYC Open Data Street Centerline (CSCL)](https://data.cityofnewyork.us/d/inkn-q76z), retrieved October 19, 2026. It includes 9,892 borough-specific named roads from 99,361 source street records. All 909 pre-existing Manhattan road IDs are preserved. Coordinates are rounded to six decimal places. The source is roadbed centerline geometry, not a pedestrian routing network. Generic `CONNECTOR` and `UNNAMED ST` features are excluded because they can refer to unrelated roads.
 
 Source API query:
 
 ```text
 https://data.cityofnewyork.us/resource/inkn-q76z.json
-$where=boroughcode="1" AND rw_type="1"
-$select=the_geom,full_street_name,physicalid
+$where=boroughcode="BOROUGH_CODE" AND rw_type="1"
+$select=the_geom,full_street_name,physicalid,boroughcode
 $limit=50000
 $order=physicalid
 ```
@@ -48,10 +48,38 @@ $order=physicalid
 To rebuild from a downloaded response:
 
 ```sh
-python3 tools/import_streets.py /path/to/centerlines.json
+node tools/import_streets.mjs /path/to/source-directory dist/streets.json YYYY-MM-DD
 ```
 
-The argument is the local JSON response file. Keep the existing `dist/streets.json` when refreshing: the importer preserves its name-to-number mapping and appends IDs for new names. Review name changes and removals before publishing a refresh. The initial assignment follows natural name order; it does not imply travel order or geographic position.
+Run the query once for each borough code 1 through 5, saving arrays as
+`borough-1.json` through `borough-5.json` in the source directory. Each response
+must be below the 50,000-record limit; paginate if that limit is reached. The
+current largest borough response has 37,883 records. Include the boundary response
+as `borough-boundaries.json` from
+`https://data.cityofnewyork.us/resource/wh2p-dxnf.json?$limit=5`.
+
+The Node.js importer preserves existing borough/name IDs and retains the ID registry
+for removed names. New names receive the next available number within their borough. Numbers restart at 1 in each borough; the borough plus number identifies a road. `tools/import_streets.py` is an
+optional Python wrapper around the same Node.js importer. No Python installation
+is needed to use the Node.js command. Street IDs do not imply travel order.
+
+The bundled boundary source is [NYC Borough Boundaries, water areas included](https://data.cityofnewyork.us/d/wh2p-dxnf).
+Boundary checks use polygons, including holes and islands, rather than a rectangular
+approximation. Water-inclusive boundaries allow NYC bridges and paths over city
+waterways while rejecting neighboring jurisdictions.
+
+| Borough | Named roads | Source street records |
+| --- | ---: | ---: |
+| Manhattan | 909 | 9,300 |
+| Bronx | 1,411 | 13,987 |
+| Brooklyn | 1,752 | 23,462 |
+| Queens | 2,525 | 37,883 |
+| Staten Island | 3,295 | 14,729 |
+
+The map starts with all five boroughs in view. Pan and zoom limits keep the view
+center in NYC's extent, and an opaque polygon mask hides map content outside the
+municipal boundary. Coverage data must load successfully before address/location
+selection is enabled. The app fails closed if that data is unavailable.
 
 ## Checks
 
@@ -86,9 +114,13 @@ URL is defined in `ROUTING_BASE_URL` in `dist/app.mjs`; static HTML does not
 read `.env` files. `WALKING_ROUTING_BASE_URL` in `.env.example` documents the URL
 for a future configuration/build integration.
 
-Routes refresh after selecting addresses, setting a device origin, or resetting
+Routes refresh after selecting NYC addresses, setting a device origin, or resetting
 the example. Editing an address clears the old route until a match is selected.
 Requests are limited to at most one per second per page and cached in memory.
+Only routes whose full geometry remains inside NYC are accepted. The app checks
+intervals between boundary crossings as well as route vertices. If the provider
+returns a route through New Jersey or another outside area, no outside path is
+shown; the shared router does not guarantee an alternative that stays in NYC.
 Distance and time describe the returned route, not grid displacement or a GPS
 recording. Offline, missing-route, timeout, and malformed-response states clear
 the old path and offer a refresh action.

@@ -1,4 +1,4 @@
-import { displayName, nearestRoad, findRoads, roadOrientation } from './road-model.mjs';
+import { displayName, nearestRoad, findRoads, roadOrientation, createCityBoundary } from './road-model.mjs';
 const $ = id => document.getElementById(id);
 const theme = getComputedStyle(document.documentElement);
 const ROAD_COLORS = {
@@ -6,6 +6,7 @@ const ROAD_COLORS = {
   horizontal: theme.getPropertyValue('--road-horizontal').trim()
 };
 let map, roadLayer, selectedLayer, pointLayer, labelLayer, selectedRoad, routeLayer;
+let city = null;
 let roads = [], searchController, searchVersion = 0, labelMode = 'numbers';
 const cache = new Map();
 let start = {lat:40.7536,lng:-73.9832,name:'Bryant Park, NYC'};
@@ -20,16 +21,20 @@ function mapFitOptions() {
   };
 }
 
+function sameRoad(a, b) { return Boolean(a && b && a.boroughCode === b.boroughCode && a.id === b.id); }
+
+function roadLabel(road) { return displayName(road.name) + ' - ' + road.borough; }
+
 function roadText(point) {
   if (!roads.length) return 'Street references unavailable';
   const match = nearestRoad(point, roads);
-  return match ? `Near Road ${match.road.id} · ${displayName(match.road.name)}` : 'No nearby numbered road in the Manhattan catalog';
+  return match ? `Near Road ${match.road.id} · ${roadLabel(match.road)}` : 'No nearby numbered road in the NYC catalog';
 }
 
 function setRoad(road, fit = false) {
   selectedRoad = road;
   $('roadNumber').textContent = `Road ${road.id}`;
-  $('roadName').textContent = displayName(road.name);
+  $('roadName').textContent = roadLabel(road);
   if (!map) return;
   selectedLayer.clearLayers();
   if ($('roadsToggle').checked) {
@@ -74,18 +79,18 @@ function drawRoads() {
       const d = Math.hypot(pixel.x-size.x/2, pixel.y-size.y/2);
       if (d < score) { score = d; best = {point, pixel}; }
     }
-    if (best) candidates.push({road, ...best, score});
+    if (best && city.contains({lat:best.point[0], lng:best.point[1]})) candidates.push({road, ...best, score});
   }
-  candidates.sort((a,c) => Number(c.road.id === selectedRoad?.id)-Number(a.road.id === selectedRoad?.id) || a.score-c.score);
+  candidates.sort((a,c) => Number(sameRoad(c.road,selectedRoad))-Number(sameRoad(a.road,selectedRoad)) || a.score-c.score);
   const placed = [];
   for (const c of candidates) {
     if (placed.some(p => Math.abs(p.x-c.pixel.x)<(labelMode === 'names' ? 170 : 65) && Math.abs(p.y-c.pixel.y)<40)) continue;
     const button = document.createElement('button');
     button.className = `road-badge road-${c.road.orientation}${labelMode === 'names' ? ' road-badge--name' : ''}`;
     button.textContent = labelMode === 'names' ? displayName(c.road.name) : c.road.id;
-    button.title = `Road ${c.road.id} · ${displayName(c.road.name)}`;
-    button.setAttribute('aria-label', `Road ${c.road.id}, ${displayName(c.road.name)}, mostly ${c.road.orientation}`);
-    button.setAttribute('aria-pressed', String(c.road.id === selectedRoad?.id));
+    button.title = `Road ${c.road.id} · ${roadLabel(c.road)}`;
+    button.setAttribute('aria-label', `Road ${c.road.id}, ${roadLabel(c.road)}, mostly ${c.road.orientation}`);
+    button.setAttribute('aria-pressed', String(sameRoad(c.road,selectedRoad)));
     button.onclick = () => { setRoad(c.road); $('roadNumber').focus({preventScroll:true}); };
     // A real button is the only keyboard target; the Leaflet marker is decorative.
     L.marker(c.point, {keyboard:false, interactive:false, icon:L.divIcon({className:'', html:button, iconSize:[labelMode === 'names' ? 150 : 42,28], iconAnchor:[labelMode === 'names' ? 75 : 21,14]})}).addTo(labelLayer);
@@ -112,6 +117,7 @@ function renderWalkingRoute(route,fit){
   if(fit)fitRoute([...points,[start.lat,start.lng],[end.lat,end.lng]]);
 }
 function requestWalkingRoute(fit=true,force=false){
+  if(!city || !city.contains(start) || !city.contains(end)){clearWalkingRoute();$('routeState').textContent='NYC only. Select addresses within the five boroughs.';return}
   if(dirtyFields.size){clearWalkingRoute();$('routeState').textContent='Select a matching address for each edited field.';return}
   const key=[start.lng,start.lat,end.lng,end.lat].join(',');
   if(!force&&routeKey===key)return;
@@ -133,6 +139,7 @@ function requestWalkingRoute(fit=true,force=false){
       if(['NoRoute','NoSegment'].includes(data.code)){$('routeState').textContent='No walking route found between A and B. Choose another address.';routeKey='';return}
       const route=data.routes?.[0],coords=route?.geometry?.coordinates;
       if(data.code!=='Ok'||!Number.isFinite(route?.distance)||route.distance<0||!Number.isFinite(route?.duration)||route.duration<0||route.geometry?.type!=='LineString'||!Array.isArray(coords)||coords.length<2||!coords.every(p=>Array.isArray(p)&&p.length>=2&&Number.isFinite(p[0])&&Math.abs(p[0])<=180&&Number.isFinite(p[1])&&Math.abs(p[1])<=90))throw Error('response');
+      if(!city.routeInside(coords)){$('routeState').textContent='No route entirely within NYC was returned. Choose different endpoints.';routeKey='';return}
       if(routeCache.size>=20)routeCache.delete(routeCache.keys().next().value);routeCache.set(key,route);
       renderWalkingRoute(route,fit);
     }catch(e){if(version!==routeVersion)return;routeKey='';routeLayer.clearLayers();$('routeState').textContent=navigator.onLine===false?'No Internet Access. Reconnect, then refresh the route.':'Walking route temporarily unavailable. Refresh to try again.'}
@@ -158,7 +165,12 @@ function update(fit = true) {
 
 function initMap() {
   if (!window.L) { $('fallback').textContent='Map could not load. Street lookup still works. Reload to retry the map.'; return; }
-  map = L.map('map',{zoomControl:false}).setView([40.754,-73.981],16);
+  map = L.map('map',{zoomControl:false,maxBounds:city.bounds,maxBoundsViscosity:1}).fitBounds(city.bounds);
+  const constrainZoom = () => map.setMinZoom(map.getBoundsZoom(city.bounds, false));
+  constrainZoom(); map.on('resize', constrainZoom);
+  map.createPane('cityMask'); map.getPane('cityMask').style.zIndex = '450'; map.getPane('cityMask').style.pointerEvents = 'none';
+  const world = [[-85,-180],[-85,180],[85,180],[85,-180]];
+  L.polygon([world,...city.maskRings],{pane:'cityMask',fillColor:'#f5f4ed',fillOpacity:1,stroke:false,interactive:false,fillRule:'evenodd'}).addTo(map);
   L.control.zoom({position:'topright'}).addTo(map);
   const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
   tiles.on('load', () => $('fallback').classList.add('hidden'));
@@ -170,7 +182,7 @@ function initMap() {
   pointLayer = L.layerGroup().addTo(map);
   map.attributionControl.addAttribution('Routing: <a href="https://routing.openstreetmap.de/about.html">FOSSGIS</a>');
   map.on('moveend',drawRoads);
-  update();
+  update(false);
 }
 
 async function loadRoads() {
@@ -179,12 +191,15 @@ async function loadRoads() {
     if (!response.ok) throw Error('Street catalog unavailable');
     const data = await response.json();
     if (!Array.isArray(data.roads) || !data.roads.length) throw Error('Empty street catalog');
+    city = createCityBoundary(data.boroughs);
     roads = data.roads;
     for (const road of roads) {
       road.orientation = roadOrientation(road);
       const points = road.lines.flat();
       road.bounds = [Math.min(...points.map(p=>p[0])), Math.min(...points.map(p=>p[1])), Math.max(...points.map(p=>p[0])), Math.max(...points.map(p=>p[1]))];
     }
+    initMap();
+    for (const id of ['origin','destination','locate','routeRetry']) $(id).disabled = false;
     $('roadQuery').disabled = false;
     const match = nearestRoad(start, roads);
     if (match) setRoad(match.road);
@@ -192,8 +207,14 @@ async function loadRoads() {
     update(false);
   } catch {
     $('roadNumber').textContent='Street numbers unavailable';
-    $('roadName').textContent='Reload to try again. Address search and walking routes still work.';
-    $('roadStatus').textContent='Could not load the Manhattan street catalog.';
+    city = null; roads = [];
+    for (const id of ['origin','destination','locate','routeRetry','roadQuery']) $(id).disabled = true;
+    clearWalkingRoute();
+    $('fallback').classList.remove('hidden');
+    $('roadName').textContent='NYC coverage unavailable. Reload to try again.';
+    $('fallback').textContent='NYC boundary data unavailable. Reload to try again.';
+    $('routeState').textContent='NYC coverage unavailable. Reload to try again.';
+    $('roadStatus').textContent='Could not load the five-borough street catalog and boundaries.';
     drawRoads();
   }
 }
@@ -202,6 +223,7 @@ function cancelSearch(){searchVersion++;searchController?.abort();$('results').r
 async function search(kind,autocomplete=false){
   searchController?.abort();const version=++searchVersion;
   const input=$(kind==='start'?'origin':'destination'),q=input.value.trim();
+  if(!city){$('status').textContent='NYC coverage unavailable. Reload to search.';return}
   if(!q){$('status').textContent='Enter an NYC street or address to search.';input.focus();return}
   $('results').replaceChildren();
   if(navigator.onLine===false){$('status').textContent='No Internet Access. Reconnect, then search again.';return}
@@ -213,19 +235,19 @@ async function search(kind,autocomplete=false){
     let data=cache.get(key);
     if(!data){
       const url=new URL('https://geosearch.planninglabs.nyc/v2/'+endpoint);
-      url.search=new URLSearchParams({text:q,size:'4'});
+      url.search=new URLSearchParams({text:q,size:'8','boundary.rect.min_lon':city.bounds[0][1],'boundary.rect.min_lat':city.bounds[0][0],'boundary.rect.max_lon':city.bounds[1][1],'boundary.rect.max_lat':city.bounds[1][0]});
       const response=await fetch(url,{signal:controller.signal});
       if(!response.ok)throw Error('service');data=await response.json();
       if(!Array.isArray(data.features))throw Error('response');
-      data.features=data.features.filter(f=>f?.geometry?.type==='Point'&&Array.isArray(f.geometry.coordinates)&&f.geometry.coordinates.length>=2&&Number.isFinite(f.geometry.coordinates[0])&&Number.isFinite(f.geometry.coordinates[1])&&Math.abs(f.geometry.coordinates[0])<=180&&Math.abs(f.geometry.coordinates[1])<=90&&typeof f.properties?.label==='string'&&f.properties.label.trim()).slice(0,4);
+      data.features=data.features.filter(f=>f?.geometry?.type==='Point'&&Array.isArray(f.geometry.coordinates)&&f.geometry.coordinates.length>=2&&Number.isFinite(f.geometry.coordinates[0])&&Number.isFinite(f.geometry.coordinates[1])&&Math.abs(f.geometry.coordinates[0])<=180&&Math.abs(f.geometry.coordinates[1])<=90&&typeof f.properties?.label==='string'&&f.properties.label.trim()&&city.contains({lng:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]})).slice(0,4);
       if(cache.size>=100)cache.delete(cache.keys().next().value);cache.set(key,data);
     }
     if(version!==searchVersion)return;
-    if(!data.features.length){$('status').textContent='No NYC addresses found. Add a street number and borough.';return}
+    if(!data.features.length){$('status').textContent='NYC only. No matching address found within the five boroughs. Add a street number and borough.';return}
     $('status').textContent='Choose the matching NYC address:';
     for(const f of data.features){
-      const name=f.properties.label,button=document.createElement('button');button.type='button';button.textContent=name;
-      button.onclick=()=>{if(version!==searchVersion)return;cancelSearch();const point={lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name};if(kind==='start')start=point;else end=point;input.value=name;dirtyFields.delete(input.id);update()};
+      const name=f.properties.label,button=document.createElement('button');button.type='button';button.textContent=name+' - '+city.boroughAt({lng:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}).name;
+      button.onclick=()=>{if(version!==searchVersion)return;cancelSearch();const point={lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],name};if(!city.contains(point)){$('status').textContent='NYC only. Choose an address within the five boroughs.';return}if(kind==='start')start=point;else end=point;input.value=name;dirtyFields.delete(input.id);update()};
       $('results').appendChild(button);
     }
   }catch(e){if(version!==searchVersion)return;$('status').textContent=navigator.onLine===false?'No Internet Access. Reconnect, then search again.':'Address search is temporarily unavailable. Try again.'}
@@ -247,7 +269,7 @@ $('roadForm').onsubmit = event => {
   $('roadStatus').textContent = matches.length ? `${matches.length} matching road${matches.length===1?'':'s'}${matches.length>6?'; showing the first 6. Add more of the street name to narrow your search.':'.'}` : 'No matching road. Try its full name or a Gridway road number.';
   for (const road of matches.slice(0,6)) {
     const button = document.createElement('button');
-    button.textContent = `Road ${road.id} · ${displayName(road.name)}`;
+    button.textContent = `Road ${road.id} · ${roadLabel(road)}`;
     button.onclick = () => { setRoad(road,true); $('roadResults').replaceChildren(); $('roadStatus').textContent='Street selected on the map.'; $('roadNumber').focus({preventScroll:true}); };
     $('roadResults').appendChild(button);
   }
@@ -263,10 +285,13 @@ for (const [id, mode] of [['numberLabels','numbers'], ['nameLabels','names']]) {
 $('roadsToggle').onchange = () => { selectedLayer?.clearLayers(); if (selectedRoad) setRoad(selectedRoad); else drawRoads(); };
 $('locate').onclick = () => {
   cancelSearch();
+  if (!city) { $('status').textContent='NYC coverage unavailable. Reload to try again.'; return; }
   if (!navigator.geolocation) { $('status').textContent='Location is unavailable here. Enter a starting address.'; return; }
   $('status').textContent='Requesting your location…';
   navigator.geolocation.getCurrentPosition(pos => {
-    start={lat:pos.coords.latitude,lng:pos.coords.longitude,name:'My location'};
+    const point={lat:pos.coords.latitude,lng:pos.coords.longitude,name:'My location'};
+    if(!city.contains(point)){$('status').textContent='Your location is outside NYC. Enter an address within the five boroughs.';return}
+    start=point;
     $('origin').value='My location'; dirtyFields.delete('origin'); $('status').textContent=`Location found (accuracy about ${Math.round(pos.coords.accuracy)} m).`; update();
   }, err => { $('status').textContent=err.code===1?'Location permission was declined. Enter a starting address.':'Could not get your location. Enter a starting address.'; }, {enableHighAccuracy:true,timeout:12000,maximumAge:60000});
 };
@@ -277,4 +302,5 @@ $('example').onclick = () => {
   $('status').textContent=''; $('results').replaceChildren();
   $('roadResults').replaceChildren(); $('roadStatus').textContent=''; $('roadQuery').value=''; update();
 };
-initMap(); update(false); loadRoads();
+for (const id of ['origin','destination','locate','routeRetry']) $(id).disabled = true;
+loadRoads();
