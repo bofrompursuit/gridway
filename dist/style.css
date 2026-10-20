@@ -49,3 +49,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #31
 .road-badge--name{width:150px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
 .leaflet-top.leaflet-right{top:calc(var(--map-header-height) + 122px)}.mapfallback{top:calc(var(--map-header-height) + 205px)}
 @media(max-width:650px){.map-nav{gap:10px}.map-controls{top:calc(var(--map-header-height) + 13px);right:13px}.map-controls .toggle{font-size:11px;padding:10px}.leaflet-top.leaflet-right{top:calc(var(--map-header-height) + 112px)}.mapfallback{top:calc(var(--map-header-height) + 195px)}.label-switch button{min-height:36px;padding:6px 8px}}
+
+/* Keep the address fields legible over a softly faded city photograph. */
+.fields{position:relative;isolation:isolate;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.fields::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:url("./assets/nyc-street-hero.jpg") center 45%/cover no-repeat;opacity:.16;pointer-events:none}
+.fields input{background:rgba(255,255,255,.96)}
+.fields label,.fields .near-road{color:var(--ink)}
+.fields .location{color:var(--ink);font-weight:600}
