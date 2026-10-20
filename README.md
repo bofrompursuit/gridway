@@ -10,7 +10,7 @@ From the repository root:
 python3 -m http.server 8000 --bind 127.0.0.1 --directory dist
 ```
 
-Open <http://127.0.0.1:8000> for the homepage or <http://127.0.0.1:8000/map/> for the map. There is no build step, package install, backend, or API key configuration. Use HTTP rather than opening the HTML as a file, because the app loads a bundled JSON catalog and JavaScript modules.
+Open <http://127.0.0.1:8000> for the homepage or <http://127.0.0.1:8000/map/> for the map. `/map/` is the canonical map URL; `dist/map.html` provides an extensionless `/map` entry on Render and forwards to that page. There is no build step, package install, backend, or API key configuration. Use HTTP rather than opening the HTML as a file, because the app loads a bundled JSON catalog and JavaScript modules.
 
 Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch address search, and walking-route calculation. The street catalog is bundled locally. Device location requires browser permission and HTTPS or localhost.
 
