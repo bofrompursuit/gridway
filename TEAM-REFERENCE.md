@@ -16,3 +16,14 @@ Local credentials remain in the ignored .env file.
 - Added credential exclusions, Render static hosting, and NYC GeoSearch suggestions after a 500 ms typing pause, including cancellation, coordinate validation, and offline feedback.
 - Validation: live API HTTP 200 and CORS; Chrome displayed four real matches; debounce, stale responses, selection, submission, error cases, JavaScript syntax, and whitespace checks passed.
 - Existing grid behavior preserved. This entry was written after that push and was not included in that pushed range.
+
+## 2026-10-19T20:29:12-04:00
+
+- Verified previous remote commit: 9793d58a6def82b0e141a654dd2293d6b1538195.
+- Verified resulting remote commit: bd7d361cf5999278d7cc724cadfe520231b19969.
+- Pushed range: 9793d58a6def82b0e141a654dd2293d6b1538195..bd7d361cf5999278d7cc724cadfe520231b19969.
+- Reviewed file-change range ends at e712a7675f317e8c133a4cb1bae1bba744a7aa70; the final review-summary commit changes no files.
+- Fetched and fast-forwarded the newer numbered-road and orientation-color changes before integrating walking routes into dist/app.mjs, dist/index.html, and dist/style.css.
+- Published in-app pedestrian paths, route distance/time, response validation, offline/retry states, public routing documentation in README.md and .env.example, and the prior verified handoff record.
+- Validation: nine road-model tests, module syntax, unchanged road catalog/model/importer checks, routing error-path checks, and Chrome route/address/road-lookup checks passed. Local .env remained excluded.
+- This entry was written after that push and was not included in that pushed range.
