@@ -3,5 +3,12 @@ services:
     name: gridway
     runtime: static
     branch: main
-    buildCommand: test -f dist/index.html
+    buildCommand: test -f dist/index.html && test -f dist/map/index.html && test -f dist/assets/nyc-street-hero.jpg
     staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /map
+        destination: /map/index.html
+      - type: rewrite
+        source: /map/
+        destination: /map/index.html

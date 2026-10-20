@@ -37,3 +37,15 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #31
 .route-summary[aria-busy="true"] .route-state::before{content:"";display:inline-block;width:10px;height:10px;border:2px solid var(--line);border-top-color:#316a4d;border-radius:50%;margin-right:6px;animation:route-spin .8s linear infinite}
 @keyframes route-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.route-summary[aria-busy="true"] .route-state::before{animation:none}}
+
+/* Map navigation and explicit number/name modes. */
+.logo{text-decoration:none;color:var(--ink)}
+.map-nav{display:flex;align-items:center;gap:18px}.map-nav a{color:var(--ink);font-size:14px;font-weight:700;text-decoration:none;padding:10px 0}.map-nav a:hover{text-decoration:underline}
+.map-controls{position:absolute;top:22px;right:18px;z-index:1000;display:grid;gap:8px}
+.map-controls .toggle{position:static;margin:0}
+.label-switch{display:flex;padding:4px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 2px 14px #16382a15}
+.label-switch button{flex:1;min-height:36px;padding:7px 10px;border:0;border-radius:6px;background:transparent;color:var(--ink);font-size:12px;font-weight:700}
+.label-switch button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.road-badge--name{width:150px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.leaflet-top.leaflet-right{top:122px}.mapfallback{top:205px}
+@media(max-width:650px){.map-nav{gap:10px}.map-nav small{display:none}.map-controls{top:13px;right:13px}.map-controls .toggle{font-size:11px;padding:10px}.leaflet-top.leaflet-right{top:112px}.mapfallback{top:195px}.label-switch button{min-height:36px;padding:6px 8px}}

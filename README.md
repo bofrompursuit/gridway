@@ -1,6 +1,6 @@
 # Gridway
 
-A map-first Manhattan street-reference demo. Each named road has one stable numeric Gridway reference. Selecting a number highlights that road's geometry; there are no coordinate cells or cell-offset instructions.
+A Manhattan street-reference app with a product homepage at `/` and the interactive map at `/map/`. Each named road has one stable numeric Gridway reference. Selecting a number highlights that road's geometry; there are no coordinate cells or cell-offset instructions.
 
 ## Run locally
 
@@ -10,13 +10,14 @@ From the repository root:
 python3 -m http.server 8000 --bind 127.0.0.1 --directory dist
 ```
 
-Open <http://127.0.0.1:8000>. There is no build step, package install, backend, or API key configuration. Use HTTP rather than opening the HTML as a file, because the app loads a bundled JSON catalog and JavaScript modules.
+Open <http://127.0.0.1:8000> for the homepage or <http://127.0.0.1:8000/map/> for the map. There is no build step, package install, backend, or API key configuration. Use HTTP rather than opening the HTML as a file, because the app loads a bundled JSON catalog and JavaScript modules.
 
 Internet access is required for Leaflet, OpenStreetMap tiles, NYC GeoSearch address search, and walking-route calculation. The street catalog is bundled locally. Device location requires browser permission and HTTPS or localhost.
 
 ## What it does
 
-- Draws actual Manhattan street centerlines, with numeric labels on roads rather than grid cells.
+- Introduces the product on the homepage, with a street photo, three feature cards, and direct links to the map. Feature cards reveal once on scroll; reduced-motion preferences disable the animation.
+- Draws actual Manhattan street centerlines, with numeric labels on roads rather than grid cells. Switch between **Numbers** and **Names** on the map; the same road keeps its reference and direction color.
 - Colors mostly vertical roads blue and mostly horizontal roads amber. Lines and number labels share the same color; the legend names both groups. Direction uses the length-weighted geometry of the whole road, so bends do not change its color. Selection adds a wider line and white halo.
 - Assigns one Gridway reference to each normalized street name. All segments under that name share the reference. East and West street names have separate references.
 - Highlights the selected road throughout its available geometry. Map labels avoid overlapping each other; zoom in to see local roads. A reference can appear again as the map moves, but its number stays the same.
@@ -65,7 +66,7 @@ Browser checks: select a numbered road; look up Broadway and a numeric reference
 
 ## Hosting
 
-Deploy on Render as a **Static Site**. The root `render.yaml` deploys branch `main`, checks that `dist/index.html` exists, and publishes `dist`. No package installation, server process, or environment variables are required.
+Deploy on Render as a **Static Site**. The root `render.yaml` deploys branch `main`, checks that the homepage, map page, and hero image exist, and publishes `dist`. No package installation, server process, or environment variables are required.
 
 For manual setup, connect `https://github.com/bofrompursuit/gridway`, select branch `main`, leave the root directory at the repository root, set the build command to `test -f dist/index.html`, and set the publish directory to `dist`. No start command is needed.
 

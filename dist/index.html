@@ -1,50 +1,79 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="theme-color" content="#193c33">
-<title>Gridway — Find your street</title>
-<meta name="description" content="Find numbered streets on a real Manhattan map. One Gridway number per named road.">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="./style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="theme-color" content="#193c33">
+  <meta name="description" content="Explore Manhattan with simple road numbers, clear colors, and real street names. Search for a place and see your walking route with Gridway.">
+  <title>Gridway — Find your street. Your way.</title>
+  <link rel="stylesheet" href="/home.css">
+  <script type="module" src="/home.mjs"></script>
 </head>
-<body>
-<header><div class="logo"><span>⌗</span> gridway</div><small>Manhattan · street references</small></header>
-<main class="app">
-<div id="map" aria-label="Manhattan map with numbered streets"></div>
-<div id="fallback" class="mapfallback" role="status">Loading the street map…</div>
-<label class="toggle"><input id="roadsToggle" type="checkbox" checked> Street numbers</label>
-<div id="mapNote" class="mapnote">One number per named road · Select a number to see the street</div>
-<section class="card" aria-label="Find a street or destination">
-<h1>Where are you headed?</h1>
-<div class="fields">
-<div><label for="origin">From</label>
-<form id="originForm" class="row"><input id="origin" value="Bryant Park, NYC" placeholder="Starting address" maxlength="200" required><button class="search" aria-label="Find start">⌕</button></form>
-<button class="location" id="locate">⌖ Use my location</button><span id="originRoad" class="near-road"></span></div>
-<div><label for="destination">To</label>
-<form id="destinationForm" class="row"><input id="destination" value="Grand Central Terminal" placeholder="Destination address" maxlength="200" required><button class="search" aria-label="Find destination">⌕</button></form>
-<span id="destinationRoad" class="near-road"></span></div>
-</div>
-<div id="results" class="results"></div><div id="status" class="status" role="status"></div>
-<section class="road-choice" aria-label="Street reference">
-<p class="eyebrow">SELECTED STREET</p>
-<div aria-live="polite" aria-atomic="true"><h2 id="roadNumber" class="road-title">Loading street numbers…</h2><p id="roadName" class="road-name"></p></div>
-<div class="road-legend" aria-label="Road color legend"><span class="road-vertical">↕ Vertical</span><span class="road-horizontal">↔ Horizontal</span></div>
-<p class="road-note">Each named road has one Gridway number. The number follows the road, including its bends.</p>
-<form id="roadForm" class="road-tools"><input id="roadQuery" aria-label="Road number or street name" placeholder="Road number or street name" maxlength="100" required><button>Find</button></form>
-<div id="roadResults" class="results" aria-label="Matching roads"></div><p id="roadStatus" class="status" role="status"></p>
-</section>
-<div class="result"><div><div id="routeSummary" class="route-summary" aria-live="polite" aria-busy="false"><div id="routeDistance" class="route-distance">A to B</div><div id="routeTime">Walking route</div><span id="routeState" class="route-state">Finding walking route...</span></div><button id="routeRetry" class="route-refresh" type="button">Refresh walking route</button></div></div>
-<button id="example" class="example">Reset NYC example</button>
-<details class="privacy"><summary>About street numbers &amp; privacy</summary>
-<p>Gridway numbers are app references, separate from official street names and addresses. East and West street names have separate references. Numbered roads cover Manhattan; they do not provide a walking route.</p>
-<p>Street shapes: <a href="https://data.cityofnewyork.us/d/inkn-q76z" target="_blank" rel="noopener">NYC Open Data, Street Centerline</a>, downloaded October 19, 2026. Road segments with the same name share one number. Map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.</p>
-<p>Address searches are sent to NYC Planning’s GeoSearch service when you pause typing or press search. Location is requested once when you tap the button; map providers receive the viewed area. Selected A and B coordinates are sent to FOSSGIS for walking routes; the provider logs requests. A device location selected as A is included. Nothing is persisted by this app.</p>
-<p>Walking routes use <a href="https://routing.openstreetmap.de/about.html" target="_blank" rel="noopener">FOSSGIS routing</a> and OpenStreetMap data. <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">Fix the map</a>.</p>
-</details>
-</section></main>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script type="module" src="./app.mjs"></script>
-</body></html>
+<body class="home-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header page-width">
+    <a class="brand" href="/" aria-label="Gridway home"><svg class="brand-mark" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M8 3v22M20 3v22M3 9h22M3 19h22" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>gridway<span class="brand-dot">.</span></a>
+    <a class="header-link" href="/map/">Open the map <span aria-hidden="true">↗</span></a>
+  </header>
+  <main id="main">
+    <section class="hero page-width" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> A CLEARER VIEW OF MANHATTAN</p>
+        <h1 id="hero-title">Find your street.<br><span>Your way.</span></h1>
+        <p class="hero-description">Simple numbers. Clear colors. Real streets. A different way to read the city and find where you’re going.</p>
+        <a class="button button-primary" href="/map/">Open the map <span aria-hidden="true">↗</span></a>
+        <p class="hero-note">Start with a number. Get to know the name.</p>
+      </div>
+      <div class="hero-visual">
+        <img class="hero-photo" src="/assets/nyc-street-hero.jpg" alt="People crossing Park Avenue at East 52nd Street in Manhattan." width="1600" height="1200" fetchpriority="high">
+        <div class="photo-location"><span aria-hidden="true">⌖</span> Manhattan, New York</div>
+        <div class="street-demo" aria-label="Preview road labels">
+          <div class="demo-heading"><span class="demo-dot" aria-hidden="true"></span><span>One street. Two ways to see it.</span></div>
+          <div class="demo-value" aria-live="polite" aria-atomic="true"><span class="demo-road-icon" aria-hidden="true">↕</span><strong id="demo-label">Road 86</strong></div>
+          <div class="demo-controls" role="group" aria-label="Example street label">
+            <button type="button" class="demo-control" data-label="number" aria-pressed="true">Number</button>
+            <button type="button" class="demo-control" data-label="name" aria-pressed="false">Street name</button>
+          </div>
+          <p class="demo-caption">Road 86 is Broadway. Switch the label to try it.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="features page-width" aria-labelledby="features-title">
+      <div class="section-heading"><p class="eyebrow">LESS TO DECODE. MORE TO GO ON.</p><h2 id="features-title">The city, a little clearer.</h2></div>
+      <div class="feature-grid">
+        <article class="feature-card" data-reveal>
+          <div class="feature-visual label-visual" aria-hidden="true">
+            <span class="mini-road-line"></span>
+            <span class="mini-number">86</span><span class="mini-switch">↔</span><span class="mini-street">Broadway</span>
+          </div>
+          <div class="feature-copy"><span class="feature-index" aria-hidden="true">01</span><h3>A number. A real street.</h3><p>Each named road has one Gridway number. Switch between numbers and street names, or select a road to see both.</p></div>
+        </article>
+        <article class="feature-card" data-reveal>
+          <div class="feature-visual direction-visual" aria-hidden="true">
+            <svg viewBox="0 0 320 156" fill="none"><path class="map-context" d="M0 37h320M0 119h320M64 0v156M254 0v156"/><path class="blue-line" d="M133 -5v166"/><path class="amber-line" d="M-5 79h330"/><rect class="blue-badge" x="113" y="17" width="40" height="31" rx="7"/><text class="map-number" x="133" y="38" text-anchor="middle">86</text><rect class="amber-badge" x="210" y="63" width="40" height="31" rx="7"/><text class="map-number" x="230" y="84" text-anchor="middle">243</text></svg>
+            <div class="mini-legend"><span class="legend-blue">↕ Vertical</span><span class="legend-amber">↔ Horizontal</span></div>
+          </div>
+          <div class="feature-copy"><span class="feature-index" aria-hidden="true">02</span><h3>Color gives you direction.</h3><p>Mostly vertical roads are blue. Mostly horizontal roads are amber. Colors and labels help you tell them apart.</p></div>
+        </article>
+        <article class="feature-card" data-reveal>
+          <div class="feature-visual route-visual" aria-hidden="true">
+            <svg viewBox="0 0 320 156" fill="none"><path class="map-context" d="M0 34h320M0 79h320M0 123h320M58 0v156M133 0v156M258 0v156"/><path class="route-halo" d="M58 123h75V34h125"/><path class="route-line" d="M58 123h75V34h125"/><circle class="route-start" cx="58" cy="123" r="13"/><text class="route-letter route-letter-light" x="58" y="127" text-anchor="middle">A</text><circle class="route-end" cx="258" cy="34" r="13"/><text class="route-letter" x="258" y="38" text-anchor="middle">B</text></svg>
+            <span class="mini-search"><svg viewBox="0 0 20 20" fill="none"><circle cx="8" cy="8" r="5"/><path d="m12 12 5 5"/></svg>Where are you headed?</span>
+          </div>
+          <div class="feature-copy"><span class="feature-index" aria-hidden="true">03</span><h3>From a place to a path.</h3><p>Search for your start and destination. See a walking route on the map, with distance and estimated walking time.</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="audience-section page-width" aria-labelledby="audience-title">
+      <div class="audience-panel">
+        <div class="audience-copy"><p class="eyebrow">A DIFFERENT WAY TO READ THE CITY</p><h2 id="audience-title">Street signs aren’t easy<br> for everyone.</h2><p>For people who find street signs difficult to read or process, including some autistic, neurodivergent, and dyslexic people.</p><p>Choose the labels that work for you. Keep real street names close.</p></div>
+        <a class="button button-light" href="/map/">Find your street <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer page-width"><a class="brand footer-brand" href="/">gridway<span class="brand-dot">.</span></a><div class="footer-links"><a href="/map/">Map</a><span class="photo-credit">Photo by <a href="https://unsplash.com/@juandinella" target="_blank" rel="noopener">Juan Di Nella</a> on <a href="https://unsplash.com/photos/people-passing-by-black-post-during-daytime-photography-3okb4QRgWgo" target="_blank" rel="noopener">Unsplash</a></span></div></footer>
+</body>
+</html>
