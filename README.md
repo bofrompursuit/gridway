@@ -24,7 +24,28 @@ Searches are sent to Photon; map providers receive the viewed area; opening Goog
 
 ## Hosting
 
-Serve `dist` as a static directory. Hosting selection is pending; no deployment or provider-specific configuration is included.
+Deploy on Render as a **Static Site**. The root `render.yaml` defines the service;
+its build command checks that the existing HTML file is present, and only `dist`
+is published. No package installation, server process, or environment variables
+are required for the current demo.
+
+After the configuration is approved and pushed to GitHub:
+
+1. In Render, select **New > Blueprint** and connect
+   `https://github.com/bofrompursuit/gridway`.
+2. Select the `main` branch and the root `render.yaml` file.
+3. Review the `gridway` static site and deploy it.
+4. Open the HTTPS URL assigned by Render and verify address search, the grid
+   toggle, device location permission, and the external walking-directions link.
+
+For manual **New > Static Site** setup, use branch `main`, leave the root directory
+at the repository root, set the build command to `test -f dist/index.html`, and set
+the publish directory to `dist`. No start command is needed.
+
+Local `.env` files are not published and are not read by this static HTML app.
+The NYC API settings in `.env.example` are reserved for future integration;
+the address search uses NYC GeoSearch directly in the browser. Never put secret API keys into
+browser JavaScript or the published `dist` directory.
 
 ## Source provenance
 

@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: gridway
+    runtime: static
+    branch: main
+    buildCommand: test -f dist/index.html
+    staticPublishPath: ./dist
