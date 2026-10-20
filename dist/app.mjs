@@ -12,6 +12,14 @@ let start = {lat:40.7536,lng:-73.9832,name:'Bryant Park, NYC'};
 let end = {lat:40.7527,lng:-73.9772,name:'Grand Central Terminal, NYC'};
 const EXAMPLE = [{...start}, {...end}];
 
+function mapFitOptions() {
+  const headerHeight = document.querySelector('.map-header').offsetHeight;
+  return {
+    paddingTopLeft: innerWidth > 650 ? [390, 85 + headerHeight] : [35, 50 + headerHeight],
+    paddingBottomRight: [45, 45], maxZoom: 16
+  };
+}
+
 function roadText(point) {
   if (!roads.length) return 'Street references unavailable';
   const match = nearestRoad(point, roads);
@@ -28,9 +36,7 @@ function setRoad(road, fit = false) {
     L.polyline(road.lines, {color:'#fff', weight:10, opacity:1, interactive:false}).addTo(selectedLayer);
     L.polyline(road.lines, {color:ROAD_COLORS[road.orientation], weight:6, opacity:1, interactive:false}).addTo(selectedLayer);
   }
-  if (fit) map.fitBounds(L.latLngBounds(road.lines.flat()), {
-    paddingTopLeft:innerWidth > 650 ? [390,85] : [35,50], paddingBottomRight:[45,45], maxZoom:16
-  });
+  if (fit) map.fitBounds(L.latLngBounds(road.lines.flat()), mapFitOptions());
   drawRoads();
 }
 
@@ -47,6 +53,7 @@ function drawRoads() {
   if (map.getZoom() < 14) { $('mapNote').textContent = 'Zoom in to see street labels'; return; }
   $('mapNote').textContent = labelMode === 'names' ? 'Street names · Select a label to highlight the road' : 'One number per named road · Select a number to see the street';
   const b = map.getBounds(), size = map.getSize();
+  const headerHeight = document.querySelector('.map-header').offsetHeight;
   const visible = roads.filter(r => intersects(r, b));
   // Prioritize the selected road, then the roads nearest the viewport center.
   const candidates = [];
@@ -60,10 +67,10 @@ function drawRoads() {
       if (!b.contains(point)) continue;
       const pixel = map.latLngToContainerPoint(point);
       const labelPadding = labelMode === 'names' ? 85 : 30;
-      if (pixel.x < labelPadding || pixel.x > size.x-labelPadding || pixel.y < 20 || pixel.y > size.y-30) continue;
-      if (pixel.x > size.x-210 && pixel.y < 205) continue; // Keep labels clear of map controls.
+      if (pixel.x < labelPadding || pixel.x > size.x-labelPadding || pixel.y < headerHeight+20 || pixel.y > size.y-30) continue;
+      if (pixel.x > size.x-210 && pixel.y < headerHeight+205) continue; // Keep labels clear of map controls.
       // Avoid placing labels underneath the desktop search panel.
-      if (innerWidth > 650 && pixel.x < 390 && pixel.y < document.querySelector('.card').offsetHeight + 35) continue;
+      if (innerWidth > 650 && pixel.x < 390 && pixel.y < headerHeight + document.querySelector('.card').offsetHeight + 35) continue;
       const d = Math.hypot(pixel.x-size.x/2, pixel.y-size.y/2);
       if (d < score) { score = d; best = {point, pixel}; }
     }
@@ -94,7 +101,7 @@ function clearWalkingRoute(){
   routeLayer?.clearLayers();$('routeSummary').setAttribute('aria-busy','false');
   $('routeDistance').textContent='A to B';$('routeTime').textContent='';
 }
-function fitRoute(points){map.fitBounds(points,{paddingTopLeft:innerWidth>650?[390,85]:[35,50],paddingBottomRight:[45,45],maxZoom:16})}
+function fitRoute(points){map.fitBounds(points,mapFitOptions())}
 function renderWalkingRoute(route,fit){
   routeLayer.clearLayers();const points=route.geometry.coordinates.map(([lng,lat])=>[lat,lng]);
   L.polyline(points,{color:'#193c33',weight:6,opacity:.9,interactive:false}).addTo(routeLayer);
@@ -142,9 +149,7 @@ function update(fit = true) {
     const popup = document.createElement('div'); popup.textContent = `${point.name} · ${roadText(point)}`;
     L.marker([point.lat,point.lng], {icon:L.divIcon({className:'', html:`<div class="pin ${type==='dest'?'dest':''}">${type==='dest'?'B':'A'}</div>`, iconSize:[28,28], iconAnchor:[14,14]})}).bindPopup(popup).addTo(pointLayer);
   }
-  if (fit) map.fitBounds([[start.lat,start.lng],[end.lat,end.lng]], {
-    paddingTopLeft:innerWidth>650?[390,85]:[35,50], paddingBottomRight:[45,45], maxZoom:16
-  });
+  if (fit) map.fitBounds([[start.lat,start.lng],[end.lat,end.lng]], mapFitOptions());
   const match = nearestRoad(start, roads);
   if (match) setRoad(match.road);
   drawRoads();
